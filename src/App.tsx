@@ -1,84 +1,86 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
 import "./index.scss";
+
 import Input from "./Input";
-import { config } from "./config";
-import useOnClickOutside from "./utils/useOnClickOutside";
+import { config, FormDataI, initialState } from "./config";
+import { ChangeEvent, FormEvent, useState } from "react";
+
+const user = {
+  email: "admin@gmail.com",
+  password: "123456",
+};
+
+enum View {
+  singUp = "singUp",
+  done = "done",
+}
+
+const wait = () =>
+  new Promise((res) => {
+    setTimeout(res, 1000);
+  });
 
 function App() {
-  const [isAnimated, setIsAnimated] = useState({ enter: false, exit: false });
-  const [isShow, setIsShow] = useState(false);
-  const ref = useRef<null | HTMLFormElement>(null);
+  const [formValue, setFormValue] = useState<FormDataI>(initialState);
+  const [errors, setErrors] = useState<FormDataI>(initialState);
+  const [isLoading, setIsLoading] = useState(false);
+  const [view, setView] = useState<View>(View.singUp);
 
-  const onStartAnimation = (e: FormEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setIsShow(true);
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.name as keyof FormDataI;
+    const value = e.target.value;
+    setFormValue((prev) => ({ ...prev, [name]: value }));
   };
 
-  useEffect(() => {
-    const onAnimationEnd = (e: AnimationEvent) => {
-      setIsAnimated({
-        exit: false,
-        enter: e.animationName === "exit" ? true : false,
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const isWrong = errors.email !== user.email || errors.password !== user.password;
+    setIsLoading(true);
+    await wait();
+    setIsLoading(false);
+    if (isWrong) {
+      setErrors({
+        email: " ",
+        password: " ",
       });
-    };
-    ref.current?.addEventListener("animationend", onAnimationEnd);
-
-    return () => {
-      ref.current?.removeEventListener("animationend", onAnimationEnd);
-    };
-  }, []);
+      return;
+    }
+    setView(View.done);
+  };
 
   return (
     <>
-      <form
-        ref={ref}
-        className="form_container"
-        data-animation={isAnimated.exit}
-        data-animation-enter={isAnimated.enter}>
-        <p className="form_title">Регистрация</p>
-        {config.map((item) => (
-          <Input key={item.name} {...item} />
-        ))}
-        <button onClick={onStartAnimation} className="form_button">
-          регистрация
-        </button>
-      </form>
-      <SlideOut isShow={isShow} onClose={() => setIsShow(false)} />
+      {view === View.singUp && (
+        <form className="form_container" onSubmit={onSubmit}>
+          <p className="form_title">Sing in</p>
+          <p className="input_error" data-error={!!errors.password}>
+            Wrong email or password
+          </p>
+          {config.map((item) => {
+            const { validate, name, ...rest } = item;
+            const errorMessage = validate?.(errors);
+            return (
+              <Input
+                key={name}
+                autoFocus={!!errorMessage && name === "email"}
+                onChange={onChange}
+                name={name}
+                value={formValue[name]}
+                error={!!errorMessage}
+                errorMessage={errorMessage}
+                {...rest}
+              />
+            );
+          })}
+          <button className="form_button">{isLoading ? "Loading" : "Login"}</button>
+        </form>
+      )}
+      {view === View.done && (
+        <form className="form_container">
+          <h1>Hello</h1>
+        </form>
+      )}
     </>
   );
 }
 
 export default App;
-
-const SlideOut = ({ isShow, onClose }: { isShow: boolean; onClose: () => void }) => {
-  const ref = useRef<null | HTMLDivElement>(null);
-  const [isExit, setIsExit] = useState(false);
-
-  useOnClickOutside(ref, () => {
-    setIsExit(true);
-  });
-
-  useEffect(() => {
-    const onExit = (e: AnimationEvent) => {
-      if (e.animationName === "slide-out-right") {
-        onClose();
-        setIsExit(false);
-      }
-    };
-    ref.current?.addEventListener("animationend", onExit);
-
-    return () => {
-      ref.current?.removeEventListener("animationend", onExit);
-    };
-  }, [onClose]);
-
-  if (!isShow) {
-    return null;
-  }
-
-  return (
-    <div className="slider-out" data-animation-exit={isExit}>
-      <div ref={ref} className="slider-out_content" data-animation-exit={isExit}></div>
-    </div>
-  );
-};

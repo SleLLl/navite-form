@@ -1,26 +1,17 @@
 import { InputProps } from "./Input";
 
 type Config = (InputProps & {
-  validate?: (state: FormDataI) => boolean;
+  validate?: (error: FormDataI) => string;
   name: keyof FormDataI;
 })[];
 
 export const config: Config = [
   {
-    name: "name",
-    placeholder: "Имя",
-    required: true,
-  },
-  {
-    name: "surname",
-    placeholder: "Фамилия",
-    required: true,
-  },
-  {
     name: "email",
     placeholder: "E-mail",
-    pattern: "^\\S+@\\S+\\.\\S+$",
-    errorMessage: "Неверный email",
+    type: "email",
+    required: true,
+    validate: (error: FormDataI) => (error.email ? error.email : ""),
   },
   {
     name: "password",
@@ -28,29 +19,16 @@ export const config: Config = [
     required: true,
     type: "password",
     minLength: 6,
-    errorMessage: "Пароли не совпадают",
-    validate: (state: FormDataI) => !(state.password === state.duplicate),
-  },
-  {
-    name: "duplicate",
-    placeholder: "Подтвердите пароль",
-    required: true,
-    type: "password",
+    validate: (error: FormDataI) => (error.password ? error.password : ""),
   },
 ];
 
 export const initialState: FormDataI = {
-  name: "",
   password: "",
-  duplicate: "",
   email: "",
-  surname: "",
 };
 
 export type FormDataI = {
-  name: string;
   password: string;
-  duplicate: string | undefined;
   email: string;
-  surname: string;
 };
